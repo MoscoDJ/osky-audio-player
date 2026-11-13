@@ -9,6 +9,8 @@ presionas una tecla (`1`, `2`, `3`…) y en ese momento lo detiene, lo mueve a l
 carpeta que corresponde y pasa al siguiente. Nada de stop manual, ni arrastrar
 entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
 
+![Osky Audio Player](docs/screenshots/reproductor.png)
+
 ## Cómo funciona
 
 - **Escaneo automático.** El track se divide en N secciones (12 por defecto)
@@ -17,6 +19,9 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
   empieza otra con puntos nuevos.
 - **Forma de onda.** Se calcula en segundo plano al abrir cada track (menos de
   medio segundo), así ves dónde están los breaks y el drop antes de oírlos.
+- **Arte y calidad a la vista.** La portada sale de las etiquetas del archivo.
+  El formato, bits, frecuencia y bitrate se marcan en verde, amarillo o rojo,
+  así detectas los MP3 de baja calidad mientras escuchas.
 - **Manual cuando tú quieras.** Si tocas la línea de tiempo (o usas `←` `→`),
   ese track pasa a manual. El siguiente vuelve a arrancar en automático.
 - **Carpetas raíz y destinos.** En la configuración agregas una carpeta raíz
@@ -34,6 +39,10 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
 - **Una sola ventana.** Si Osky ya está abierto, el doble clic en otro archivo
   lo carga en la misma ventana.
 
+| Configuración | Acerca de |
+|---|---|
+| ![Configuración](docs/screenshots/configuracion.png) | ![Acerca de](docs/screenshots/acerca-de.png) |
+
 ### Atajos
 
 | Tecla | Acción |
@@ -48,6 +57,7 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
 | `Ctrl+Z` | Deshacer el último movimiento |
 | `Ctrl+O` | Abrir archivo |
 | `Ctrl+,` | Configuración |
+| `F1` | Acerca de |
 
 Formatos: MP3, FLAC, WAV, AAC y M4A.
 
@@ -91,3 +101,13 @@ npm run build                   # paquetes instalables (.deb/.AppImage, .msi, .d
 
 En modo desarrollo se le puede pasar un archivo:
 `npm run tauri dev -- -- "/ruta/al/track.flac"`.
+
+## Licencia
+
+Osky Audio Player es software libre: puedes usarlo, estudiarlo, modificarlo y
+redistribuirlo bajo los términos de la
+[GNU Affero General Public License v3.0](LICENSE) o posterior. Si distribuyes
+una versión modificada, o la ofreces como servicio en red, debes publicar
+también su código fuente bajo la misma licencia.
+
+© 2026 MoscoDJ

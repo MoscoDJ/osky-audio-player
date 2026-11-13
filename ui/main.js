@@ -89,6 +89,7 @@ function renderTrack() {
   $('title').textContent = m.title || stem(track.fileName);
   $('filename').textContent = track.fileName;
   $('tech').replaceChildren(...qualityTags(m).map(([t, c]) => el('span', { className: `tag ${c}`, textContent: t })));
+  loadCover(track.path);
   $('error').hidden = !track.error;
   $('error').textContent = track.error || '';
 
@@ -191,6 +192,24 @@ async function poll() {
     }
   } catch (_) { /* nada */ }
   setTimeout(poll, 80);
+}
+
+// Portada: se pide aparte y se descarta si mientras tanto ya cambió el track.
+async function loadCover(path) {
+  const img = $('cover-img');
+  const setArt = (url) => {
+    img.toggleAttribute('hidden', !url);
+    if (url) img.src = url; else img.removeAttribute('src');
+    $('cover').classList.toggle('has-art', !!url);
+    $('backdrop').style.backgroundImage = url ? `url("${url}")` : '';
+    $('backdrop').classList.toggle('on', !!url);
+  };
+  if (img.dataset.path === path) return;
+  img.dataset.path = path;
+  setArt(null);
+  let url = null;
+  try { url = await invoke('cover_art', { path }); } catch (_) {}
+  if (track?.path === path) setArt(url);
 }
 
 // Forma de onda: barras de pico (tenues) y RMS (lo que se percibe) en espejo.
@@ -369,10 +388,15 @@ $('timeline').addEventListener('pointerup', async (ev) => {
 
 document.addEventListener('keydown', (ev) => {
   const inField = ev.target.closest('input, textarea, select');
+  if (!$('about').hidden) {
+    if (ev.key === 'Escape' || ev.key === 'F1') { ev.preventDefault(); closeAbout(); }
+    return;
+  }
   if (!$('settings').hidden) {
     if (ev.key === 'Escape') closeSettings();
     return;
   }
+  if (ev.key === 'F1') { ev.preventDefault(); openAbout(); return; }
   if (inField) return;
 
   const ctrl = ev.ctrlKey || ev.metaKey;
@@ -535,11 +559,29 @@ function closeSettings() {
   $('settings').hidden = true;
 }
 
+// ---------------------------------------------------------------- acerca de
+
+async function openAbout() {
+  try {
+    $('about-version').textContent = `Versión ${await window.__TAURI__.app.getVersion()}`;
+  } catch (_) {}
+  $('about').hidden = false;
+}
+function closeAbout() {
+  $('about').hidden = true;
+}
+
 // ---------------------------------------------------------------- arranque
 
 async function init() {
   $('btn-open').onclick = openDialog;
   $('btn-settings').onclick = openSettings;
+  $('btn-about').onclick = openAbout;
+  $('btn-about-close').onclick = closeAbout;
+  $('about').addEventListener('pointerdown', (e) => { if (e.target === $('about')) closeAbout(); });
+  document.querySelectorAll('[data-url]').forEach((b) => {
+    b.onclick = () => window.__TAURI__.opener.openUrl(b.dataset.url);
+  });
   $('btn-settings-close').onclick = closeSettings;
   $('settings').addEventListener('pointerdown', (e) => { if (e.target === $('settings')) closeSettings(); });
   $('btn-play').onclick = togglePlay;

@@ -301,6 +301,14 @@ fn undo_move(state: State<AppState>) -> Result<Option<TrackView>, String> {
     Ok(play_index(&state, &mut s))
 }
 
+/// Portada como data URL (se pide aparte para no hacer pesada la carga del track).
+#[tauri::command(async)]
+fn cover_art(path: String) -> Option<String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    let (mime, data) = library::read_cover(Path::new(&path))?;
+    Some(format!("data:{mime};base64,{}", STANDARD.encode(data)))
+}
+
 #[tauri::command(async)]
 fn toggle_play(state: State<AppState>) -> bool {
     state.player.toggle_play()
@@ -405,6 +413,7 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let config_path = app.path().app_config_dir()?.join("config.json");
             let config = Config::load(&config_path).normalized();
@@ -430,6 +439,7 @@ pub fn run() {
             move_current,
             undo_move,
             toggle_play,
+            cover_art,
             seek,
             set_autoscan,
             set_volume,

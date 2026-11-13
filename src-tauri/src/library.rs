@@ -2,6 +2,7 @@
 //! metadatos y mover archivos (con sus .lrc) sin sobrescribir nunca nada.
 
 use crate::config::Config;
+use lofty::picture::PictureType;
 use lofty::prelude::*;
 use serde::Serialize;
 use std::cmp::Ordering;
@@ -214,5 +215,32 @@ pub fn prune_empty_dirs(dir: &Path, root: &Path, keep: &[PathBuf]) {
             Some(p) => cur = p.to_path_buf(),
             None => break,
         }
+    }
+}
+
+/// Arte del track, solo de las etiquetas del archivo (de preferencia la
+/// portada frontal). Devuelve (tipo MIME, bytes).
+pub fn read_cover(path: &Path) -> Option<(String, Vec<u8>)> {
+    let tagged = lofty::read_from_path(path).ok()?;
+    let pics: Vec<_> = tagged.tags().iter().flat_map(|t| t.pictures()).collect();
+    let pic = pics
+        .iter()
+        .find(|p| p.pic_type() == PictureType::CoverFront)
+        .or_else(|| pics.first())?;
+    let data = pic.data().to_vec();
+    let mime = pic
+        .mime_type()
+        .map(|m| m.as_str().to_string())
+        .filter(|m| m.starts_with("image/"))
+        .unwrap_or_else(|| sniff_image(&data).to_string());
+    Some((mime, data))
+}
+
+fn sniff_image(data: &[u8]) -> &'static str {
+    match data {
+        [0x89, b'P', b'N', b'G', ..] => "image/png",
+        [b'G', b'I', b'F', ..] => "image/gif",
+        [b'R', b'I', b'F', b'F', _, _, _, _, b'W', b'E', b'B', b'P', ..] => "image/webp",
+        _ => "image/jpeg",
     }
 }

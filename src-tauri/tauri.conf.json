@@ -28,6 +28,10 @@
     "active": true,
     "targets": "all",
     "category": "Audio",
+    "license": "AGPL-3.0-or-later",
+    "licenseFile": "../LICENSE",
+    "publisher": "MoscoDJ",
+    "copyright": "© 2026 MoscoDJ",
     "shortDescription": "Reproductor para clasificar tracks de DJ a toda velocidad",
     "icon": [
       "icons/32x32.png",

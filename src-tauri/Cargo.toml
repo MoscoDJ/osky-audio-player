@@ -3,6 +3,8 @@ name = "osky-player"
 version = "0.1.0"
 description = "Osky Audio Player for DJs: escucha rápida y clasificación de tracks"
 authors = ["MoscoDJ"]
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/MoscoDJ/osky-audio-player"
 edition = "2021"
 
 [lib]
@@ -15,6 +17,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -23,6 +26,7 @@ rodio = { version = "0.20", default-features = false }
 symphonia = { version = "0.5", default-features = false, features = ["aac", "alac", "flac", "isomp4", "mp3", "wav", "pcm", "adpcm"] }
 lofty = "0.22"
 walkdir = "2"
+base64 = "0.22"
 natord = "1"
 rand = "0.8"
 
