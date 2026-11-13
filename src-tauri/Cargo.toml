@@ -1,0 +1,37 @@
+[package]
+name = "osky-player"
+version = "0.1.0"
+description = "Osky Audio Player for DJs: escucha rápida y clasificación de tracks"
+authors = ["MoscoDJ"]
+edition = "2021"
+
+[lib]
+name = "osky_player_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# rodio solo para la salida de audio; la decodificación es propia (src/decoder.rs).
+rodio = { version = "0.20", default-features = false }
+symphonia = { version = "0.5", default-features = false, features = ["aac", "alac", "flac", "isomp4", "mp3", "wav", "pcm", "adpcm"] }
+lofty = "0.22"
+walkdir = "2"
+natord = "1"
+rand = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+# Las dependencias (decodificación de audio) optimizadas también en desarrollo.
+[profile.dev.package."*"]
+opt-level = 3

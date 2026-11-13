@@ -1,0 +1,16 @@
+{
+  "name": "osky-audio-player",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Osky Audio Player for DJs",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:bin": "tauri build --no-bundle",
+    "icons": "tauri icon assets/icon.svg"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
