@@ -77,6 +77,8 @@ function renderTrack() {
   $('controls').hidden = !has;
   hideConflict();
 
+  renderUpNext();
+
   if (!has) {
     $('crumbs').textContent = '';
     $('queue').textContent = '';
@@ -110,6 +112,18 @@ function renderTrack() {
     : `${track.queueIndex + 1} / ${track.queueLen}`;
 
   renderMoves();
+}
+
+function renderUpNext() {
+  const n = track?.nextUp;
+  $('up-next').hidden = !n;
+  if (!n) return;
+  const text = $('up-next-text');
+  text.replaceChildren();
+  if (n.artist) text.append(el('b', { textContent: `${n.artist} — ` }));
+  text.append(n.title || stem(n.fileName));
+  // La carpeta solo si cambia respecto a la actual (al terminar una subcarpeta).
+  $('up-next-folder').textContent = n.folder !== track.folder ? `→ ${n.folder}` : '';
 }
 
 function keyFor(i) {
@@ -516,6 +530,24 @@ async function addRoot(suggest) {
   await saveConfig();
 }
 
+// "Configurar esta carpeta": la carpeta del track se agrega sola como raíz y
+// queda listo el campo para crear sus subcarpetas destino.
+async function configureHere() {
+  if (!track) return;
+  const path = parentDir(track.path);
+  config = await call('get_config');
+  if (!config.roots.some((r) => r.path === path)) {
+    config.roots.push({ path, destinations: [], allowDelete: false });
+    await saveConfig();
+  } else {
+    renderSettings();
+  }
+  $('settings').hidden = false;
+  const card = [...document.querySelectorAll('#roots .root-card')].find((c) => c.dataset.path === path);
+  card?.scrollIntoView({ block: 'center' });
+  card?.querySelector('.new-sub')?.focus();
+}
+
 function deleteToggle(root) {
   const key = keyFor(root.destinations.length);
   const box = el('input', { type: 'checkbox', checked: !!root.allowDelete });
@@ -554,7 +586,7 @@ function renderSettings() {
       ));
     });
 
-    const newName = el('input', { type: 'text', placeholder: 'Nueva subcarpeta, p. ej. Las que suenan' });
+    const newName = el('input', { type: 'text', className: 'new-sub', placeholder: 'Nueva subcarpeta, p. ej. Las que suenan' });
     const create = async () => {
       const name = newName.value.trim();
       if (!name) { newName.focus(); return; }
@@ -562,10 +594,12 @@ function renderSettings() {
       if (root.destinations.some((d) => d.path === path)) { toast('Ese destino ya existe', 'err'); return; }
       root.destinations.push({ label: name, path });
       await saveConfig();
+      // Listo para escribir la siguiente subcarpeta sin volver a hacer clic.
+      document.querySelector(`#roots .root-card[data-path="${CSS.escape(root.path)}"] .new-sub`)?.focus();
     };
     newName.addEventListener('keydown', (e) => { if (e.key === 'Enter') create(); });
 
-    roots.append(el('div', { className: 'root-card' },
+    const card = el('div', { className: 'root-card' },
       el('div', { className: 'root-head' },
         el('div', { className: 'root-path', textContent: root.path }),
         el('button', { className: 'btn btn-small', textContent: 'Quitar raíz', onclick: () => { config.roots.splice(ri, 1); saveConfig(); } }),
@@ -586,7 +620,9 @@ function renderSettings() {
           },
         }),
       ),
-    ));
+    );
+    card.dataset.path = root.path;
+    roots.append(card);
   });
 
   $('scan-enabled').checked = config.scan.enabled;
@@ -645,10 +681,8 @@ async function init() {
   $('btn-auto').onclick = toggleAuto;
   $('btn-undo').onclick = undo;
   $('btn-add-root').onclick = () => addRoot();
-  $('btn-config-here').onclick = async () => {
-    await openSettings();
-    addRoot(track ? parentDir(parentDir(track.path)) : undefined);
-  };
+  $('btn-config-here').onclick = configureHere;
+  $('up-next').onclick = () => { hideConflict(); next(); };
   $('btn-conflict-rename').onclick = () => { const d = conflict.dest; hideConflict(); moveTo(d, true); };
   $('btn-conflict-skip').onclick = () => { hideConflict(); next(); };
   $('btn-conflict-cancel').onclick = hideConflict;

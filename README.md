@@ -17,6 +17,8 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
   y suena 1 segundo de un punto al azar dentro de cada una, en orden. Así
   pasa por la intro, el desarrollo, el drop y el final. Al terminar la pasada
   empieza otra con puntos nuevos.
+- **Qué sigue.** Abajo del reproductor se ve el próximo track de la cola (y la
+  carpeta, si cambia). Un clic salta a él.
 - **Forma de onda.** Se calcula en segundo plano al abrir cada track (menos de
   medio segundo), así ves dónde están los breaks y el drop antes de oírlos.
 - **Arte y calidad a la vista.** La portada sale de las etiquetas del archivo.
@@ -29,6 +31,9 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
   y `Las que suenan`). Puedes agregar todos los destinos que quieras, y pueden
   estar en cualquier ruta. Cualquier track dentro de la raíz, a cualquier
   profundidad, muestra esos botones.
+- **Configurar en un clic.** Si abres un track de una carpeta sin configurar,
+  "Configurar esta carpeta" la agrega sola como raíz y deja listo el campo para
+  escribir sus subcarpetas destino (nombre + Enter, una tras otra).
 - **Mover y siguiente.** Al mover, el track va directo al destino (sin
   conservar la subcarpeta de origen) junto con su `.lrc`, si tiene. Luego
   suena el siguiente. Cuando una subcarpeta se vacía, salta sola a la

@@ -97,7 +97,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .empty { text-align: center; color: var(--muted); }
 .empty-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
 
-.player { position: relative; overflow: hidden; }
+.player { position: relative; overflow: hidden; padding-bottom: 64px !important; }
+
+/* Barra "Sigue": el próximo track, pegada abajo del reproductor. */
+.up-next {
+  position: absolute !important; left: 28px; right: 28px; bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--bg-2) 85%, transparent);
+  text-align: left; color: var(--muted); min-width: 0;
+}
+.up-next:hover { border-color: var(--muted); color: var(--text); }
+.up-next-label {
+  flex: none; font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--accent);
+}
+.up-next-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.up-next-text b { font-weight: 600; color: var(--muted); }
+.up-next-folder { flex: none; max-width: 30%; font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .player > :not(.backdrop) { position: relative; z-index: 1; }
 /* Portada difuminada de fondo, muy sutil. */
 .backdrop {

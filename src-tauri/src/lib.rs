@@ -75,6 +75,30 @@ struct TrackView {
     remaining_in_folder: usize,
     error: Option<String>,
     undo_available: bool,
+    /// El track que sonará después (para la barra "Sigue").
+    next_up: Option<NextUp>,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct NextUp {
+    file_name: String,
+    title: Option<String>,
+    artist: Option<String>,
+    folder: String,
+}
+
+/// Carpeta de `path` relativa a la raíz (o el nombre de la raíz si está directo en ella).
+fn rel_folder(root: Option<&config::Root>, path: &Path) -> String {
+    let parent = path.parent().unwrap_or(Path::new(""));
+    match root {
+        Some(r) => match parent.strip_prefix(&r.path) {
+            Ok(rel) if rel.as_os_str().is_empty() => folder_name(Path::new(&r.path)),
+            Ok(rel) => rel.to_string_lossy().into_owned(),
+            Err(_) => folder_name(parent),
+        },
+        None => parent.to_string_lossy().into_owned(),
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -114,14 +138,20 @@ fn view(state: &AppState, s: &Session) -> Option<TrackView> {
     let cfg = state.config.lock().unwrap();
     let root = s.root.and_then(|i| cfg.roots.get(i));
     let parent = path.parent().unwrap_or(Path::new(""));
-    let folder = match root {
-        Some(r) => match parent.strip_prefix(&r.path) {
-            Ok(rel) if rel.as_os_str().is_empty() => folder_name(Path::new(&r.path)),
-            Ok(rel) => rel.to_string_lossy().into_owned(),
-            Err(_) => folder_name(parent),
-        },
-        None => parent.to_string_lossy().into_owned(),
-    };
+    let folder = rel_folder(root, path);
+    // El siguiente de la cola (con vuelta al inicio), si no es el mismo track.
+    let next_up = (s.queue.len() > 1)
+        .then(|| &s.queue[(s.index + 1) % s.queue.len()])
+        .filter(|p| *p != path)
+        .map(|p| {
+            let m = library::read_meta(p);
+            NextUp {
+                file_name: p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
+                title: m.title,
+                artist: m.artist,
+                folder: rel_folder(root, p),
+            }
+        });
     Some(TrackView {
         path: path.to_string_lossy().into_owned(),
         file_name: path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
@@ -146,6 +176,7 @@ fn view(state: &AppState, s: &Session) -> Option<TrackView> {
         remaining_in_folder: s.queue.iter().filter(|p| p.parent() == Some(parent)).count(),
         error: s.error.clone(),
         undo_available: !state.undo.lock().unwrap().is_empty(),
+        next_up,
     })
 }
 
