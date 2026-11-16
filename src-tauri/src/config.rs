@@ -13,10 +13,13 @@ pub struct Destination {
 /// Una carpeta raíz (p. ej. ".../Warmup Electronico"). Cualquier track dentro
 /// de ella (a cualquier profundidad) muestra sus botones de destino.
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-#[serde(default)]
+#[serde(default, rename_all = "camelCase")]
 pub struct Root {
     pub path: String,
     pub destinations: Vec<Destination>,
+    /// Muestra el botón "Eliminar" (manda a la papelera) con la tecla
+    /// siguiente al último destino.
+    pub allow_delete: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

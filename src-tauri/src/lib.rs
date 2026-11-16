@@ -58,6 +58,7 @@ struct RootView {
     path: String,
     name: String,
     destinations: Vec<DestView>,
+    allow_delete: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -138,6 +139,7 @@ fn view(state: &AppState, s: &Session) -> Option<TrackView> {
                     is_current: parent == Path::new(&d.path),
                 })
                 .collect(),
+            allow_delete: r.allow_delete,
         }),
         queue_index: s.index,
         queue_len: s.queue.len(),
@@ -264,7 +266,7 @@ fn move_current(dest: usize, rename: bool, state: State<AppState>) -> Result<Mov
         }
     };
     let queue_index = s.index;
-    state.undo.lock().unwrap().push(MoveRecord { files, queue_index });
+    state.undo.lock().unwrap().push(MoveRecord { files, queue_index, trashed: false });
     if remove_empty {
         if let Some(dir) = src.parent() {
             library::prune_empty_dirs(dir, &root_path, &keep);
@@ -282,13 +284,50 @@ fn move_current(dest: usize, rename: bool, state: State<AppState>) -> Result<Mov
     })
 }
 
+/// Manda el track actual a la papelera y pasa al siguiente.
+#[tauri::command(async)]
+fn delete_current(state: State<AppState>) -> Result<Option<TrackView>, String> {
+    let mut s = state.session.lock().unwrap();
+    let src = s.current.clone().ok_or("No hay track cargado")?;
+    let (root_path, keep, remove_empty) = {
+        let cfg = state.config.lock().unwrap();
+        let root = s.root.and_then(|i| cfg.roots.get(i)).ok_or("Esta carpeta no está configurada")?;
+        if !root.allow_delete {
+            return Err("Eliminar no está habilitado para esta carpeta".into());
+        }
+        let mut keep: Vec<PathBuf> = root.destinations.iter().map(|d| PathBuf::from(&d.path)).collect();
+        keep.push(PathBuf::from(&root.path));
+        (PathBuf::from(&root.path), keep, cfg.remove_empty_folders)
+    };
+    state.player.stop();
+    let files = match library::trash_track(&src) {
+        Ok(f) => f,
+        Err(e) => {
+            play_index(&state, &mut s);
+            return Err(e);
+        }
+    };
+    let queue_index = s.index;
+    state.undo.lock().unwrap().push(MoveRecord { files, queue_index, trashed: true });
+    if remove_empty {
+        if let Some(dir) = src.parent() {
+            library::prune_empty_dirs(dir, &root_path, &keep);
+        }
+    }
+    if queue_index < s.queue.len() {
+        s.queue.remove(queue_index);
+    }
+    Ok(play_index(&state, &mut s))
+}
+
 #[tauri::command(async)]
 fn undo_move(state: State<AppState>) -> Result<Option<TrackView>, String> {
     let mut s = state.session.lock().unwrap();
     let rec = state.undo.lock().unwrap().pop().ok_or("No hay nada que deshacer")?;
     // Si el que suena es justo el que vamos a regresar, soltarlo primero.
     state.player.stop();
-    if let Err(e) = library::undo_move(&rec) {
+    let restored = if rec.trashed { library::restore_from_trash(&rec) } else { library::undo_move(&rec) };
+    if let Err(e) = restored {
         state.undo.lock().unwrap().push(rec);
         play_index(&state, &mut s);
         return Err(e);
@@ -400,10 +439,15 @@ fn percent_decode(s: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    // Perfil aislado para desarrollo y pruebas: con OSKY_CONFIG_DIR se usa
+    // otra carpeta de configuración y se desactiva la instancia única, para
+    // no tocar la config real del usuario ni su ventana abierta.
+    let dev_config_dir = std::env::var_os("OSKY_CONFIG_DIR").map(PathBuf::from);
+    let mut builder = tauri::Builder::default();
+    if dev_config_dir.is_none() {
         // Debe ir primero: si ya hay una ventana abierta, el doble clic manda
         // el archivo a esa ventana en lugar de abrir otra.
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(path) = file_from_args(argv) {
                 let _ = app.emit("open-file", path);
             }
@@ -411,11 +455,17 @@ pub fn run() {
                 let _ = w.unminimize();
                 let _ = w.set_focus();
             }
-        }))
+        }));
+    }
+    builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
-            let config_path = app.path().app_config_dir()?.join("config.json");
+        .setup(move |app| {
+            let config_dir = match &dev_config_dir {
+                Some(d) => d.clone(),
+                None => app.path().app_config_dir()?,
+            };
+            let config_path = config_dir.join("config.json");
             let config = Config::load(&config_path).normalized();
             let player = Player::new(config.volume);
             app.manage(AppState {
@@ -437,6 +487,7 @@ pub fn run() {
             next_track,
             prev_track,
             move_current,
+            delete_current,
             undo_move,
             toggle_play,
             cover_art,

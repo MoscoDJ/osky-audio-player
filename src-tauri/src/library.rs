@@ -158,8 +158,60 @@ fn is_cross_device(e: &io::Error) -> bool {
 #[derive(Clone, Debug)]
 pub struct MoveRecord {
     /// Pares (origen, destino): el track primero y luego sus .lrc.
+    /// Si se mandó a la papelera, destino = origen.
     pub files: Vec<(PathBuf, PathBuf)>,
     pub queue_index: usize,
+    pub trashed: bool,
+}
+
+/// Archivos acompañantes de un track (sus .lrc) que existen.
+fn sidecars(src: &Path) -> Vec<PathBuf> {
+    let (Some(dir), Some(stem)) = (src.parent(), src.file_stem()) else { return Vec::new() };
+    SIDECAR_EXTS
+        .iter()
+        .map(|ext| dir.join(format!("{}.{ext}", stem.to_string_lossy())))
+        .filter(|p| p.is_file())
+        .collect()
+}
+
+/// Manda el track y sus .lrc a la papelera del sistema.
+pub fn trash_track(src: &Path) -> Result<Vec<(PathBuf, PathBuf)>, String> {
+    let mut paths = vec![src.to_path_buf()];
+    paths.extend(sidecars(src));
+    trash::delete_all(&paths).map_err(|e| format!("No se pudo mandar a la papelera: {e}"))?;
+    Ok(paths.into_iter().map(|p| (p.clone(), p)).collect())
+}
+
+/// Regresa de la papelera lo que se eliminó (Linux y Windows).
+#[cfg(any(windows, all(unix, not(target_os = "macos"))))]
+pub fn restore_from_trash(rec: &MoveRecord) -> Result<(), String> {
+    let items = trash::os_limited::list().map_err(|e| format!("No se pudo leer la papelera: {e}"))?;
+    let mut chosen = Vec::new();
+    for (orig, _) in &rec.files {
+        if orig.exists() {
+            return Err(format!("Ya hay otro archivo en {}", orig.display()));
+        }
+        // Si se eliminó varias veces algo con esa ruta, el más reciente.
+        if let Some(item) = items
+            .iter()
+            .filter(|i| &i.original_path() == orig)
+            .max_by_key(|i| i.time_deleted)
+        {
+            chosen.push(item.clone());
+        }
+        if let Some(dir) = orig.parent() {
+            fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        }
+    }
+    if chosen.is_empty() {
+        return Err("Ya no está en la papelera".into());
+    }
+    trash::os_limited::restore_all(chosen).map_err(|e| format!("No se pudo restaurar: {e}"))
+}
+
+#[cfg(not(any(windows, all(unix, not(target_os = "macos")))))]
+pub fn restore_from_trash(_rec: &MoveRecord) -> Result<(), String> {
+    Err("Restáuralo desde la Papelera del sistema".into())
 }
 
 /// Mueve `src` a `target` junto con sus archivos acompañantes.
@@ -172,16 +224,12 @@ pub fn move_track(src: &Path, target: &Path) -> Result<Vec<(PathBuf, PathBuf)>, 
     move_path(src, target).map_err(|e| format!("No se pudo mover: {e}"))?;
     let mut moved = vec![(src.to_path_buf(), target.to_path_buf())];
 
-    let (Some(src_dir), Some(src_stem), Some(dst_stem)) =
-        (src.parent(), src.file_stem(), target.file_stem())
-    else {
-        return Ok(moved);
-    };
-    for ext in SIDECAR_EXTS {
-        let from = src_dir.join(format!("{}.{ext}", src_stem.to_string_lossy()));
+    let Some(dst_stem) = target.file_stem() else { return Ok(moved) };
+    for from in sidecars(src) {
+        let ext = from.extension().map(|e| e.to_string_lossy().into_owned()).unwrap_or_default();
         let to = dir.join(format!("{}.{ext}", dst_stem.to_string_lossy()));
         // Nunca sobrescribir: si ya hay uno con ese nombre, se queda donde está.
-        if from.is_file() && !to.exists() && move_path(&from, &to).is_ok() {
+        if !to.exists() && move_path(&from, &to).is_ok() {
             moved.push((from, to));
         }
     }

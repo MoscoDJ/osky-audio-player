@@ -208,6 +208,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dest:hover:not(:disabled) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-3)); }
 .dest:active:not(:disabled), .dest.flash { transform: scale(.98); border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 22%, var(--bg-3)); }
 .dest:disabled { opacity: .4; cursor: default; }
+.dest-delete { margin-top: 6px; border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); background: color-mix(in srgb, var(--bad) 7%, var(--bg-3)); }
+.dest-delete .dest-label { color: var(--bad); }
+.dest-delete:hover:not(:disabled) { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, var(--bg-3)); }
+.dest-delete:active:not(:disabled), .dest-delete.flash { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 28%, var(--bg-3)); }
 .dest kbd { font-size: 13px; min-width: 26px; line-height: 22px; color: var(--text); }
 .dest-label { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dest-here { color: var(--dim); font-size: 11px; font-weight: 600; }
@@ -274,6 +278,8 @@ input[type=text]:focus, input[type=number]:focus { outline: 0; border-color: var
 .dest-row .acts button:hover { background: var(--bg-3); color: var(--text); }
 .root-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .root-actions input { width: 180px; }
+.delete-toggle { margin: -2px 0 8px; font-size: 13px; }
+.delete-toggle .hint-inline { color: var(--dim); font-size: 12px; }
 .empty-dests { color: var(--dim); font-size: 12px; margin-bottom: 10px; }
 
 .shortcuts { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; color: var(--muted); }

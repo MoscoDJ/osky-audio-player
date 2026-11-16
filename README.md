@@ -33,6 +33,10 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
   conservar la subcarpeta de origen) junto con su `.lrc`, si tiene. Luego
   suena el siguiente. Cuando una subcarpeta se vacía, salta sola a la
   siguiente, y si quedó vacía la borra (se puede desactivar).
+- **Eliminar.** En cada carpeta raíz puedes habilitar el botón "Eliminar",
+  que toma la tecla siguiente al último destino (con 2 destinos, la `3`).
+  Manda el track y su `.lrc` a la papelera del sistema, nunca los borra
+  definitivamente, y `Ctrl+Z` los recupera.
 - **Seguro.** Nunca sobrescribe: si ya existe un archivo con el mismo nombre
   en el destino, te avisa y te deja moverlo como `nombre (2)`, saltarlo o
   cancelar. `Ctrl+Z` deshace el último movimiento.
@@ -48,6 +52,7 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
 | Tecla | Acción |
 |---|---|
 | `1`…`9`, `0` | Mover al destino 1…10 |
+| `Supr` | Eliminar: manda a la papelera (si está habilitado en esa carpeta) |
 | `Espacio` | Play / pausa |
 | `S` | Saltar sin mover |
 | `B` | Track anterior |
@@ -101,6 +106,10 @@ npm run build                   # paquetes instalables (.deb/.AppImage, .msi, .d
 
 En modo desarrollo se le puede pasar un archivo:
 `npm run tauri dev -- -- "/ruta/al/track.flac"`.
+
+Para probar sin tocar tu configuración real ni tu ventana abierta, usa un
+perfil aislado: `OSKY_CONFIG_DIR=/tmp/osky-dev npm run dev`. Con esa variable,
+Osky guarda la config en esa carpeta y desactiva la instancia única.
 
 ## Licencia
 

@@ -124,7 +124,7 @@ function renderMoves() {
   $('no-root').hidden = !track || !!root;
   if (!root) return;
 
-  if (root.destinations.length === 0) {
+  if (root.destinations.length === 0 && !root.allowDelete) {
     list.append(el('div', { className: 'empty-dests', textContent: 'Esta raíz aún no tiene destinos.' }),
       el('button', { className: 'btn', textContent: 'Agregar destinos', onclick: openSettings }));
     return;
@@ -144,6 +144,22 @@ function renderMoves() {
     b.dataset.index = i;
     list.append(b);
   });
+
+  // "Eliminar" toma la tecla siguiente al último destino.
+  if (root.allowDelete) {
+    const key = keyFor(root.destinations.length);
+    const b = el('button', {
+      className: 'dest dest-delete',
+      id: 'btn-delete',
+      title: 'Mandar a la papelera (también con Supr). Ctrl+Z lo recupera.',
+      onclick: deleteCurrent,
+    },
+      key ? el('kbd', { textContent: key }) : null,
+      el('span', { className: 'dest-label', textContent: 'Eliminar' }),
+      el('span', { className: 'dest-here', textContent: 'a la papelera' }),
+    );
+    list.append(b);
+  }
 }
 
 function renderStatus() {
@@ -299,6 +315,25 @@ async function moveTo(i, rename = false) {
   }
 }
 
+async function deleteCurrent() {
+  if (busy || !track?.root?.allowDelete) return;
+  busy = true;
+  hideConflict();
+  const btn = $('btn-delete');
+  btn?.classList.add('flash');
+  try {
+    const next = await call('delete_current');
+    lastUndoAvailable = true;
+    setTrack(next);
+    toast(next ? '🗑 Enviado a la papelera · Ctrl+Z para recuperar' : '🗑 Enviado a la papelera. ¡Carpeta terminada!', 'ok');
+  } catch (_) {
+    // el toast de error ya se mostró
+  } finally {
+    busy = false;
+    btn?.classList.remove('flash');
+  }
+}
+
 function showConflict(dest, existing) {
   conflict = { dest, existing };
   $('conflict-path').textContent = existing;
@@ -324,7 +359,7 @@ async function undo() {
     const t = await call('undo_move');
     lastUndoAvailable = t?.undoAvailable ?? false;
     setTrack(t);
-    toast('↶ Movimiento deshecho', 'ok');
+    toast('↶ Deshecho', 'ok');
   } catch (_) {
   } finally {
     busy = false;
@@ -415,7 +450,14 @@ document.addEventListener('keydown', (ev) => {
     ev.preventDefault();
     if (ev.repeat) return;
     const i = ev.key === '0' ? 9 : Number(ev.key) - 1;
-    moveTo(i);
+    const root = track?.root;
+    if (root?.allowDelete && i === root.destinations.length) deleteCurrent();
+    else moveTo(i);
+    return;
+  }
+  if (ev.key === 'Delete') {
+    ev.preventDefault();
+    if (!ev.repeat && track?.root?.allowDelete) deleteCurrent();
     return;
   }
 
@@ -474,6 +516,18 @@ async function addRoot(suggest) {
   await saveConfig();
 }
 
+function deleteToggle(root) {
+  const key = keyFor(root.destinations.length);
+  const box = el('input', { type: 'checkbox', checked: !!root.allowDelete });
+  box.addEventListener('change', () => { root.allowDelete = box.checked; saveConfig(); });
+  return el('label', { className: 'row delete-toggle' },
+    box,
+    el('span', { textContent: 'Habilitar "Eliminar" para esta carpeta' }),
+    key ? el('kbd', { textContent: key }) : null,
+    el('span', { className: 'hint-inline', textContent: 'manda a la papelera, Ctrl+Z lo recupera' }),
+  );
+}
+
 function renderSettings() {
   const roots = $('roots');
   roots.replaceChildren();
@@ -517,6 +571,7 @@ function renderSettings() {
         el('button', { className: 'btn btn-small', textContent: 'Quitar raíz', onclick: () => { config.roots.splice(ri, 1); saveConfig(); } }),
       ),
       root.destinations.length ? rows : el('div', { className: 'empty-dests', textContent: 'Sin destinos. Crea subcarpetas o elige carpetas existentes (pueden estar en cualquier lugar).' }),
+      deleteToggle(root),
       el('div', { className: 'root-actions' },
         newName,
         el('button', { className: 'btn btn-small btn-accent', textContent: 'Crear', onclick: create }),
