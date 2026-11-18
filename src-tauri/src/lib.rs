@@ -77,6 +77,8 @@ struct TrackView {
     undo_available: bool,
     /// El track que sonará después (para la barra "Sigue").
     next_up: Option<NextUp>,
+    /// El nombre del archivo trae la marca de edición.
+    marked_for_edit: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -106,6 +108,21 @@ struct WaveformEvent {
     path: String,
     rms: Vec<u8>,
     peak: Vec<u8>,
+}
+
+#[derive(Serialize, Clone)]
+struct RenamedEvent {
+    from: String,
+    to: String,
+}
+
+/// Avisa a la interfaz que el archivo que suena cambió de nombre (para que
+/// conserve su forma de onda).
+fn emit_renamed(state: &AppState, from: &Path, to: &Path) {
+    let _ = state.app.emit(
+        "renamed",
+        RenamedEvent { from: from.to_string_lossy().into_owned(), to: to.to_string_lossy().into_owned() },
+    );
 }
 
 /// Calcula la forma de onda en segundo plano y la manda a la interfaz.
@@ -177,6 +194,7 @@ fn view(state: &AppState, s: &Session) -> Option<TrackView> {
         error: s.error.clone(),
         undo_available: !state.undo.lock().unwrap().is_empty(),
         next_up,
+        marked_for_edit: library::is_marked(path, &cfg.edit_suffix),
     })
 }
 
@@ -351,10 +369,46 @@ fn delete_current(state: State<AppState>) -> Result<Option<TrackView>, String> {
     Ok(play_index(&state, &mut s))
 }
 
+/// Pone o quita " - EDITAR" en el nombre del track actual sin cortar el audio.
+#[tauri::command(async)]
+fn toggle_edit_mark(state: State<AppState>) -> Result<Option<TrackView>, String> {
+    let mut s = state.session.lock().unwrap();
+    let src = s.current.clone().ok_or("No hay track cargado")?;
+    let suffix = state.config.lock().unwrap().edit_suffix.clone();
+    let files = library::toggle_edit_mark(&src, &suffix)?;
+    let new_path = files[0].1.clone();
+    state.player.rename_path(&src, &new_path);
+    emit_renamed(&state, &src, &new_path);
+    let idx = s.index;
+    if s.queue.get(idx) == Some(&src) {
+        s.queue[idx] = new_path.clone();
+    }
+    s.current = Some(new_path);
+    state.undo.lock().unwrap().push(MoveRecord { files, queue_index: idx, trashed: false });
+    Ok(view(&state, &s))
+}
+
 #[tauri::command(async)]
 fn undo_move(state: State<AppState>) -> Result<Option<TrackView>, String> {
     let mut s = state.session.lock().unwrap();
     let rec = state.undo.lock().unwrap().pop().ok_or("No hay nada que deshacer")?;
+    // Deshacer la marca de edición del track que suena: solo regresar el
+    // nombre, sin cortar el audio (igual que la tecla *).
+    let (orig, now) = rec.files[0].clone();
+    if !rec.trashed && s.current.as_ref() == Some(&now) && orig.parent() == now.parent() {
+        if let Err(e) = library::undo_move(&rec) {
+            state.undo.lock().unwrap().push(rec);
+            return Err(e);
+        }
+        state.player.rename_path(&now, &orig);
+        emit_renamed(&state, &now, &orig);
+        let idx = s.index;
+        if s.queue.get(idx) == Some(&now) {
+            s.queue[idx] = orig.clone();
+        }
+        s.current = Some(orig);
+        return Ok(view(&state, &s));
+    }
     // Si el que suena es justo el que vamos a regresar, soltarlo primero.
     state.player.stop();
     let restored = if rec.trashed { library::restore_from_trash(&rec) } else { library::undo_move(&rec) };
@@ -519,6 +573,7 @@ pub fn run() {
             prev_track,
             move_current,
             delete_current,
+            toggle_edit_mark,
             undo_move,
             toggle_play,
             cover_art,

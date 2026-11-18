@@ -78,6 +78,9 @@
         <button class="chip" id="btn-auto" title="Escaneo automático para este track (A)">
           <span class="chip-dot"></span><span id="auto-label">AUTO</span>
         </button>
+        <button class="chip chip-edit" id="btn-mark" title="Marcar para edición: agrega la marca al nombre del archivo (*)">
+          <span class="chip-ico">✎</span><span>EDITAR</span>
+        </button>
         <div class="spacer"></div>
         <label class="volume" title="Volumen (↑ ↓)">
           <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 5V4L8 9zM16.5 12a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
@@ -142,6 +145,7 @@
         <section>
           <h3>Organización</h3>
           <label class="row"><input type="checkbox" id="remove-empty" /> Borrar la subcarpeta de origen cuando quede vacía</label>
+          <label class="row">Marca para edición <input type="text" id="edit-suffix" class="suffix-input" spellcheck="false" /> <span class="hint-inline" id="edit-suffix-example"></span></label>
         </section>
 
         <section>
@@ -154,6 +158,7 @@
             <span><kbd>B</kbd></span><span>Track anterior</span>
             <span><kbd>←</kbd> <kbd>→</kbd></span><span>−5 / +5 s (con <kbd>Shift</kbd>: 30 s), pasa a manual</span>
             <span><kbd>A</kbd></span><span>Prender / apagar escaneo automático</span>
+            <span><kbd>*</kbd></span><span>Marcar / desmarcar para edición (agrega la marca al nombre)</span>
             <span><kbd>↑</kbd> <kbd>↓</kbd></span><span>Volumen</span>
             <span><kbd>Ctrl</kbd>+<kbd>Z</kbd></span><span>Deshacer último movimiento</span>
             <span><kbd>Ctrl</kbd>+<kbd>O</kbd></span><span>Abrir archivo</span>

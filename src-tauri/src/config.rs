@@ -54,7 +54,11 @@ pub struct Config {
     pub volume: f32,
     /// Borra la subcarpeta de origen cuando queda completamente vacía.
     pub remove_empty_folders: bool,
+    /// Texto que se agrega al nombre del archivo al marcarlo para edición.
+    pub edit_suffix: String,
 }
+
+pub const DEFAULT_EDIT_SUFFIX: &str = " - EDITAR";
 
 impl Default for Config {
     fn default() -> Self {
@@ -63,6 +67,7 @@ impl Default for Config {
             scan: ScanConfig::default(),
             volume: 0.8,
             remove_empty_folders: true,
+            edit_suffix: DEFAULT_EDIT_SUFFIX.into(),
         }
     }
 }
@@ -102,6 +107,10 @@ impl Config {
         self.scan.segment_secs = self.scan.segment_secs.clamp(0.25, 30.0);
         self.scan.points = self.scan.points.clamp(1, 100);
         self.volume = self.volume.clamp(0.0, 1.0);
+        // Sin texto la marca no se podría distinguir; tampoco caracteres de ruta.
+        if self.edit_suffix.trim().is_empty() || self.edit_suffix.contains(['/', '\\']) {
+            self.edit_suffix = DEFAULT_EDIT_SUFFIX.into();
+        }
         self
     }
 

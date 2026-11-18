@@ -42,6 +42,12 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
   que toma la tecla siguiente al último destino (con 2 destinos, la `3`).
   Manda el track y su `.lrc` a la papelera del sistema, nunca los borra
   definitivamente, y `Ctrl+Z` los recupera.
+- **Marcar para edición.** Con `*` el archivo se renombra agregando
+  ` - EDITAR` antes de la extensión (junto con su `.lrc`), sin cortar el
+  audio. Sirve para los tracks con intros u outros incrustados ("DJ ... in the
+  mix") que hay que recortar después. Luego lo mueves como siempre, y al
+  buscar "EDITAR" en tu explorador o en Rekordbox salen todos. Presionar `*`
+  otra vez quita la marca; el texto se cambia en la configuración.
 - **Seguro.** Nunca sobrescribe: si ya existe un archivo con el mismo nombre
   en el destino, te avisa y te deja moverlo como `nombre (2)`, saltarlo o
   cancelar. `Ctrl+Z` deshace el último movimiento.
@@ -63,6 +69,7 @@ entre ventanas del explorador, ni archivos duplicados por un mal arrastre.
 | `B` | Track anterior |
 | `←` `→` | −5 / +5 s (`Shift`: 30 s), pasa a manual |
 | `A` | Prender / apagar el escaneo para este track |
+| `*` | Marcar / desmarcar para edición (agrega ` - EDITAR` al nombre) |
 | `↑` `↓` | Volumen |
 | `Ctrl+Z` | Deshacer el último movimiento |
 | `Ctrl+O` | Abrir archivo |

@@ -312,3 +312,14 @@ input[type=text]:focus, input[type=number]:focus { outline: 0; border-color: var
 .about-author { margin: 0 0 16px; }
 .about-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 14px; }
 .about-credits { margin: 0; }
+
+/* ---------- Marca para edición ---------- */
+.chip-edit { margin-left: 0; }
+.chip-ico { font-size: 13px; line-height: 1; }
+.chip-edit.on {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+  background: color-mix(in srgb, var(--warn) 12%, var(--bg-2));
+}
+.suffix-input { width: 140px; font-family: ui-monospace, "JetBrains Mono", monospace; }
+.hint-inline { color: var(--dim); font-size: 12px; }

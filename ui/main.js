@@ -86,6 +86,7 @@ function renderTrack() {
     return;
   }
 
+  $('btn-mark').classList.toggle('on', !!track.markedForEdit);
   const m = track.meta;
   $('artist').textContent = m.artist || '';
   $('title').textContent = m.title || stem(track.fileName);
@@ -390,6 +391,22 @@ async function seekBy(delta) {
   await call('seek', { position: Math.max(0, status.position + delta), manual: true });
 }
 
+// Marca para edición: renombra el archivo (y su .lrc) sin cortar el audio.
+async function toggleMark() {
+  if (busy || !track) return;
+  busy = true;
+  try {
+    const t = await call('toggle_edit_mark');
+    lastUndoAvailable = true;
+    setTrack(t);
+    toast(t?.markedForEdit ? '✎ Marcado para editar' : 'Marca de edición quitada', 'ok');
+  } catch (_) {
+    // el toast de error ya se mostró
+  } finally {
+    busy = false;
+  }
+}
+
 async function toggleAuto() {
   if (!track || !status) return;
   await call('set_autoscan', { enabled: !status.scanActive });
@@ -488,6 +505,10 @@ document.addEventListener('keydown', (ev) => {
       break;
     case 'a': case 'A':
       if (!ev.repeat) toggleAuto();
+      break;
+    case '*':
+      ev.preventDefault();
+      if (!ev.repeat) toggleMark();
       break;
     case 'ArrowRight':
       ev.preventDefault();
@@ -630,6 +651,8 @@ function renderSettings() {
   $('scan-points').value = config.scan.points;
   $('scan-repeat').checked = config.scan.repeat;
   $('remove-empty').checked = config.removeEmptyFolders;
+  $('edit-suffix').value = config.editSuffix;
+  $('edit-suffix-example').textContent = `→ Artista - Título${config.editSuffix}.flac`;
 }
 
 function bindSettingInputs() {
@@ -639,6 +662,8 @@ function bindSettingInputs() {
   on('scan-points', (i) => (config.scan.points = Math.round(Number(i.value)) || 12));
   on('scan-repeat', (i) => (config.scan.repeat = i.checked));
   on('remove-empty', (i) => (config.removeEmptyFolders = i.checked));
+  // Sin trim: el espacio inicial de " - EDITAR" es parte de la marca.
+  on('edit-suffix', (i) => (config.editSuffix = i.value || ' - EDITAR'));
 }
 
 async function openSettings() {
@@ -679,6 +704,7 @@ async function init() {
   $('btn-next').onclick = () => { hideConflict(); next(); };
   $('btn-prev').onclick = prev;
   $('btn-auto').onclick = toggleAuto;
+  $('btn-mark').onclick = toggleMark;
   $('btn-undo').onclick = undo;
   $('btn-add-root').onclick = () => addRoot();
   $('btn-config-here').onclick = configureHere;
@@ -693,6 +719,13 @@ async function init() {
   $('volume').value = config.volume;
 
   await listen('open-file', (e) => openPath(e.payload));
+  // Mismo audio con otro nombre (marca de edición): conservar su forma de onda.
+  await listen('renamed', (e) => {
+    if (wave?.path === e.payload.from) {
+      wave.path = e.payload.to;
+      drawWave();
+    }
+  });
   await listen('waveform', (e) => {
     wave = e.payload;
     drawWave();

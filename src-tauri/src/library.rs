@@ -292,3 +292,25 @@ fn sniff_image(data: &[u8]) -> &'static str {
         _ => "image/jpeg",
     }
 }
+
+/// ¿El nombre del archivo (sin extensión) termina con la marca de edición?
+pub fn is_marked(path: &Path, suffix: &str) -> bool {
+    path.file_stem().map(|s| s.to_string_lossy().ends_with(suffix)).unwrap_or(false)
+}
+
+/// Pone o quita la marca de edición en el nombre (" - EDITAR" antes de la
+/// extensión), renombrando también sus .lrc. Devuelve los pares renombrados.
+pub fn toggle_edit_mark(src: &Path, suffix: &str) -> Result<Vec<(PathBuf, PathBuf)>, String> {
+    let dir = src.parent().ok_or("Ruta inválida")?;
+    let stem = src.file_stem().ok_or("Nombre inválido")?.to_string_lossy().into_owned();
+    let new_stem = match stem.strip_suffix(suffix) {
+        Some(clean) if !clean.trim().is_empty() => clean.to_string(),
+        _ => format!("{stem}{suffix}"),
+    };
+    let ext = src.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let target = dir.join(format!("{new_stem}{ext}"));
+    if target.exists() {
+        return Err(format!("Ya existe {}", target.display()));
+    }
+    move_track(src, &target)
+}

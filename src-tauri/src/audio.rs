@@ -160,6 +160,15 @@ impl Player {
         Ok(duration)
     }
 
+    /// El archivo que suena se renombró: actualizar la ruta (para reabrirlo
+    /// si termina) sin interrumpir la reproducción.
+    pub fn rename_path(&self, old: &Path, new: &Path) {
+        let mut g = self.inner.lock().unwrap();
+        if g.path.as_deref() == Some(old) {
+            g.path = Some(new.to_path_buf());
+        }
+    }
+
     /// Detiene y suelta el archivo (necesario antes de moverlo, sobre todo en Windows).
     pub fn stop(&self) {
         let mut g = self.inner.lock().unwrap();
